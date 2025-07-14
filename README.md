@@ -1,5 +1,5 @@
 # Loopy Belief Propagation for Stereo Matching
-A C++ implementation of Loopy Belief Propagation for stereo matching. Is used the "min-sum" variation of the algorithm and the "Accelerated" message update schedule.
+A C++ implementation of Loopy Belief Propagation for stereo matching. It uses the "min-sum" variation of the algorithm and the "Accelerated" (Right-Left-Down-Up pass) message update schedule.
 
 ## Input Image
 The Tsukuba stereo image that used as input.
