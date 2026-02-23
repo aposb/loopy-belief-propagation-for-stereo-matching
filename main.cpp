@@ -6,6 +6,16 @@
 #include <chrono>
 #include <opencv2/opencv.hpp>
 
+#define Synchronous 1
+#define Bipartite 2
+#define Accelerated 3
+#define Accelerated2 4
+#define ByRow 5
+#define ByRow2 6
+
+// Select message update schedule
+#define MESSAGE_UPDATE_SCHEDULE Bipartite
+
 using namespace std;
 using namespace cv;
 
@@ -18,6 +28,9 @@ typedef vector<MsgRow> MsgTable;
 Mat leftImage, rightImage, disparityMap, disparityImage;
 IntTable smoothnessCost;
 MsgTable dataCost, msgUp, msgDown, msgRight, msgLeft;
+#if MESSAGE_UPDATE_SCHEDULE == Synchronous
+MsgTable msgUp2, msgDown2, msgRight2, msgLeft2;
+#endif
 int width, height, levels, iterations, lambda, truncationThreshold;
 
 void sendMessageUp(int x, int y);
@@ -74,6 +87,12 @@ int main()
 	msgDown = MsgTable(height, MsgRow(width, Msg(levels, 0)));
 	msgRight = MsgTable(height, MsgRow(width, Msg(levels, 0)));
 	msgLeft = MsgTable(height, MsgRow(width, Msg(levels, 0)));
+#if MESSAGE_UPDATE_SCHEDULE == Synchronous
+	msgUp2 = MsgTable(height, MsgRow(width, Msg(levels, 0)));
+	msgDown2 = MsgTable(height, MsgRow(width, Msg(levels, 0)));
+	msgRight2 = MsgTable(height, MsgRow(width, Msg(levels, 0)));
+	msgLeft2 = MsgTable(height, MsgRow(width, Msg(levels, 0)));
+#endif
 
 	cout << "Iter.\tEnergy" << endl;
 	cout << "--------------" << endl;
@@ -81,6 +100,40 @@ int main()
 	// Start iterations
 	for (int iter = 1; iter <= iterations; iter++)
 	{
+#if MESSAGE_UPDATE_SCHEDULE == Synchronous
+		// Update messages (Synchronous)
+		for (int y = 0; y < height; y++)
+			for (int x = 0; x < width; x++)
+			{
+				if (x < width - 1)
+					sendMessageRight(x, y);
+				if (x > 0)
+					sendMessageLeft(x, y);
+				if (y < height - 1)
+					sendMessageDown(x, y);
+				if (y > 0)
+					sendMessageUp(x, y);
+			}
+		msgLeft = msgLeft2;
+		msgRight = msgRight2;
+		msgUp = msgUp2;
+		msgDown = msgDown2;
+#elif MESSAGE_UPDATE_SCHEDULE == Bipartite
+		// Update messages (Bipartite)
+		for (int i = 0; i < 2; i++)
+			for (int y = 0; y < height; y++)
+				for (int x = (y + i) % 2; x < width; x += 2)
+				{
+					if (y > 0)
+						sendMessageUp(x, y);
+					if (y < height - 1)
+						sendMessageDown(x, y);
+					if (x < width - 1)
+						sendMessageRight(x, y);
+					if (x > 0)
+						sendMessageLeft(x, y);
+				}
+#elif MESSAGE_UPDATE_SCHEDULE == Accelerated
 		// Update messages (Accelerated)
 		for (int y = 0; y < height; y++)
 			for (int x = 0; x < width - 1; x++)
@@ -94,6 +147,64 @@ int main()
 		for (int x = 0; x < width; x++)
 			for (int y = height - 1; y >= 1; y--)
 				sendMessageUp(x, y);
+#elif MESSAGE_UPDATE_SCHEDULE == Accelerated2
+		// Update messages (Accelerated2)
+		for (int y = 0; y < height; y++)
+			for (int x = 0; x < width; x++)
+			{
+				if (x < width - 1)
+					sendMessageRight(x, y);
+				if (y < height - 1)
+					sendMessageDown(x, y);
+			}
+		for (int y = height - 1; y >= 0; y--)
+			for (int x = width - 1; x >= 0; x--)
+			{
+				if (x > 0)
+					sendMessageLeft(x, y);
+				if (y > 0)
+					sendMessageUp(x, y);
+			}
+#elif MESSAGE_UPDATE_SCHEDULE == ByRow
+		// Update messages (ByRow)
+		for (int y = 0; y < height; y++)
+		{
+			for (int x = 0; x < width; x++)
+			{
+				if (x < width - 1)
+					sendMessageRight(x, y);
+				if (y < height - 1)
+					sendMessageDown(x, y);
+			}
+			for (int x = width - 1; x >= 0; x--)
+			{
+				if (x > 0)
+					sendMessageLeft(x, y);
+				if (y > 0)
+					sendMessageUp(x, y);
+			}
+		}
+#elif MESSAGE_UPDATE_SCHEDULE == ByRow2
+		// Update messages (ByRow2)
+		for (int i = 1; i >= 0; i--)
+			for (int y = i; y < height; y += 2)
+			{
+				for (int x = 0; x < width; x++)
+				{
+					if (x < width - 1)
+						sendMessageRight(x, y);
+					if (y < height - 1)
+						sendMessageDown(x, y);
+				}
+				for (int x = width - 1; x >= 0; x--)
+				{
+					if (x > 0)
+						sendMessageLeft(x, y);
+					if (y > 0)
+						sendMessageUp(x, y);
+				}
+			}
+#endif
 
 		// Update disparity map
 		for (int y = 0; y < height; y++)
@@ -132,25 +243,41 @@ int main()
 
 void sendMessageUp(int x, int y)
 {
+#if MESSAGE_UPDATE_SCHEDULE == Synchronous
+	Msg &msgOut = msgDown2[y - 1][x];
+#else
 	Msg &msgOut = msgDown[y - 1][x];
+#endif
 	createMessage(dataCost[y][x], msgDown[y][x], msgRight[y][x], msgLeft[y][x], msgOut);
 }
 
 void sendMessageDown(int x, int y)
 {
+#if MESSAGE_UPDATE_SCHEDULE == Synchronous
+	Msg &msgOut = msgUp2[y + 1][x];
+#else
 	Msg &msgOut = msgUp[y + 1][x];
+#endif
 	createMessage(dataCost[y][x], msgUp[y][x], msgRight[y][x], msgLeft[y][x], msgOut);
 }
 
 void sendMessageRight(int x, int y)
 {
+#if MESSAGE_UPDATE_SCHEDULE == Synchronous
+	Msg &msgOut = msgLeft2[y][x + 1];
+#else
 	Msg &msgOut = msgLeft[y][x + 1];
+#endif
 	createMessage(dataCost[y][x], msgUp[y][x], msgDown[y][x], msgLeft[y][x], msgOut);
 }
 
 void sendMessageLeft(int x, int y)
 {
+#if MESSAGE_UPDATE_SCHEDULE == Synchronous
+	Msg &msgOut = msgRight2[y][x - 1];
+#else
 	Msg &msgOut = msgRight[y][x - 1];
+#endif
 	createMessage(dataCost[y][x], msgUp[y][x], msgDown[y][x], msgRight[y][x], msgOut);
 }
 
@@ -213,7 +340,8 @@ int findBestAssignment(int x, int y)
 
 int computeBelief(int x, int y, int label)
 {
-	int cost = dataCost[y][x][label] + msgUp[y][x][label] + msgDown[y][x][label] + msgRight[y][x][label] + msgLeft[y][x][label];
+	//int cost = dataCost[y][x][label] + msgUp[y][x][label] + msgDown[y][x][label] + msgRight[y][x][label] + msgLeft[y][x][label]; // Standard belief computation
+	int cost = msgUp[y][x][label] + msgDown[y][x][label] + msgRight[y][x][label] + msgLeft[y][x][label]; // Without dataCost (larger energy but better results)
 
 	return cost;
 }
