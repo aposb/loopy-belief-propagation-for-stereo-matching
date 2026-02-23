@@ -18,7 +18,7 @@ typedef vector<MsgRow> MsgTable;
 Mat leftImage, rightImage, disparityMap, disparityImage;
 IntTable smoothnessCost;
 MsgTable dataCost, msgUp, msgDown, msgRight, msgLeft;
-int width, height, lambda, iterations, levels;
+int width, height, levels, iterations, lambda, truncationThreshold;
 
 void sendMessageUp(int x, int y);
 void sendMessageDown(int x, int y);
@@ -33,9 +33,10 @@ int computeEnergy();
 
 int main()
 {
-	lambda = 5;
-	iterations = 30;
 	levels = 16;
+	iterations = 50;
+	lambda = 5;
+	truncationThreshold = 2;
 
 	// Start timer
 	auto start = chrono::steady_clock::now();
@@ -78,24 +79,21 @@ int main()
 	cout << "--------------" << endl;
 
 	// Start iterations
-	for (int iter = 0; iter <= iterations; iter++)
+	for (int iter = 1; iter <= iterations; iter++)
 	{
-		// Update messages
-		if (iter >= 1)
-		{
-			for (int y = 0; y < height; y++)
-				for (int x = 0; x < width - 1; x++)
-					sendMessageRight(x, y);
-			for (int y = 0; y < height; y++)
-				for (int x = width - 1; x >= 1; x--)
-					sendMessageLeft(x, y);
-			for (int x = 0; x < width; x++)
-				for (int y = 0; y < height - 1; y++)
-					sendMessageDown(x, y);
-			for (int x = 0; x < width; x++)
-				for (int y = height - 1; y >= 1; y--)
-					sendMessageUp(x, y);
-		}
+		// Update messages (Accelerated)
+		for (int y = 0; y < height; y++)
+			for (int x = 0; x < width - 1; x++)
+				sendMessageRight(x, y);
+		for (int y = 0; y < height; y++)
+			for (int x = width - 1; x >= 1; x--)
+				sendMessageLeft(x, y);
+		for (int x = 0; x < width; x++)
+			for (int y = 0; y < height - 1; y++)
+				sendMessageDown(x, y);
+		for (int x = 0; x < width; x++)
+			for (int y = height - 1; y >= 1; y--)
+				sendMessageUp(x, y);
 
 		// Update disparity map
 		for (int y = 0; y < height; y++)
@@ -120,7 +118,7 @@ int main()
 	}
 
 	// Save disparity image
-	bool flag = imwrite("disparity.png", disparityImage);
+	imwrite("disparity.png", disparityImage);
 
 	// Stop timer
 	auto end = chrono::steady_clock::now();
@@ -192,7 +190,7 @@ int computeDataCost(int x, int y, int label)
 
 int computeSmoothnessCost(int label1, int label2)
 {
-	int cost = lambda * abs(label1 - label2);
+	int cost = lambda * min(abs(label1 - label2), truncationThreshold);
 
 	return cost;
 }
