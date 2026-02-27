@@ -1,47 +1,34 @@
 # Loopy Belief Propagation for Stereo Matching
-A C++ implementation of Loopy Belief Propagation for stereo matching that offers the choice between six message update schedules. It uses the "Min-Sum" version of the algorithm with a small improvement for better results. The improvement is that in the calculation of belief, the data cost does not add up (normally it had to add up one time).
+A C++ implementation of Loopy Belief Propagation for stereo matching, featuring six alternative message update schedules to analyze convergence behavior and solution quality.
 
 ## Input Image
 The Tsukuba stereo image that used as input.
 
-<p align="center">
-  <img src="left.png"> 
-</p>
+![Tsukuba Left](left.png) ![Tsukuba Right](right.png)
 
 ## Output Image
-The disparity map that created at the output using the "Synchronous" message update schedule.
+The disparity maps that created at the output.
 
-<p align="center">
-  <img src="results/disparity1.png"> 
-</p>
+### Belief Propagation (Synchronous)
 
-The disparity map that created at the output using the "Bipartite" message update schedule.
+![Belief Propagation (Synchronous) Disparity Map](results/disparity1.png)
 
-<p align="center">
-  <img src="results/disparity2.png"> 
-</p>
+### Belief Propagation (Bipartite)
 
-The disparity map that created at the output using the "Accelerated" message update schedule.
+![Belief Propagation (Bipartite) Disparity Map](results/disparity2.png)
 
-<p align="center">
-  <img src="results/disparity3.png"> 
-</p>
+### Belief Propagation (Accelerated)
 
-The disparity map that created at the output using the "Accelerated2" message update schedule.
+![Belief Propagation (Accelerated) Disparity Map](results/disparity3.png)
 
-<p align="center">
-  <img src="results/disparity4.png"> 
-</p>
+### Belief Propagation (Accelerated2)
 
-The disparity map that created at the output using the "ByRow" message update schedule.
+![Belief Propagation (Accelerated2) Disparity Map](results/disparity4.png)
 
-<p align="center">
-  <img src="results/disparity5.png"> 
-</p>
+### Belief Propagation (ByRow)
 
-The disparity map that created at the output using the "ByRow2" message update schedule.
+![Belief Propagation (ByRow) Disparity Map](results/disparity5.png)
 
-<p align="center">
-  <img src="results/disparity6.png"> 
-</p>
+### Belief Propagation (ByRow2)
 
+![Belief Propagation (ByRow2) Disparity Map](results/disparity6.png)
